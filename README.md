@@ -10,9 +10,20 @@ Enable bedroom DJs to create professional-level sets by combining human creativi
 - **AI handles** beatmatching, transitions, effects, and technical execution  
 - **Hybrid control** - override AI anytime with manual input
 
+### The Big Picture
+
+This isn't just software - **we're building custom hardware**.
+
+**Phase 1 (Now):** Software MVP - prove the AI works  
+**Phase 2 (6-12mo):** Raspberry Pi prototype - standalone device  
+**Phase 3 (12-24mo):** Custom hardware - production-ready DJ controller
+
+See `/docs/04_Hardware_Vision.md` for the full roadmap.
+
 ## Status
 
-🚧 **MVP in Development** - Core analysis & queue management
+🚧 **Phase 1** - Software MVP in Development  
+📋 **Hardware Research** - Raspberry Pi + embedded AI testing planned
 
 ## Quick Start
 
