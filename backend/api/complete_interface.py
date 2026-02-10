@@ -901,10 +901,10 @@ async def main_interface():
             
             <!-- Tabs -->
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('library')">
+                <button class="tab active" data-tab="library">
                     📚 Library
                 </button>
-                <button class="tab" onclick="switchTab('dj')" id="dj-tab">
+                <button class="tab" data-tab="dj" id="dj-tab">
                     🎛️ DJ Mode
                 </button>
             </div>
@@ -914,8 +914,7 @@ async def main_interface():
                 <!-- Upload section -->
                 <div class="upload-section">
                     <h2>Upload & Analyze Tracks</h2>
-                    <div class="upload-area" id="upload-area"
-                         onclick="document.getElementById('file-input').click()">
+                    <div class="upload-area" id="upload-area">
                         <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
                         <div style="font-size: 18px; margin-bottom: 10px;">
                             Drag & drop audio files here
@@ -926,7 +925,7 @@ async def main_interface():
                         </div>
                     </div>
                     <input type="file" id="file-input" multiple accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.aiff">
-                    <button onclick="analyzeSelected()" id="analyze-btn" disabled>
+                    <button id="analyze-btn" disabled>
                         🔍 Analyze Selected Tracks
                     </button>
                 </div>
@@ -1159,6 +1158,17 @@ async def main_interface():
             // Drag & drop
             const uploadArea = document.getElementById('upload-area');
             const fileInput = document.getElementById('file-input');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            
+            // Click upload area to open file picker
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Analyze button
+            analyzeBtn.addEventListener('click', () => {
+                analyzeSelected();
+            });
             
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -1586,8 +1596,7 @@ async def main_interface():
                 document.querySelectorAll('.tab').forEach(t => {
                     t.classList.remove('active');
                 });
-                event?.target?.classList?.add('active') || 
-                    document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
+                document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
                 
                 // Update content
                 document.querySelectorAll('.tab-content').forEach(c => {
@@ -1854,6 +1863,13 @@ async def main_interface():
                     labelCenter.classList.add('active');
                 }
             }
+            
+            // Attach tab event listeners
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.dataset.tab);
+                });
+            });
             
             // Load library on start
             loadLibrary();
