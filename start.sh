@@ -14,7 +14,7 @@ fi
 
 # Install dependencies if needed
 echo "📦 Checking dependencies..."
-pip3 install --break-system-packages sounddevice soundfile scipy websockets python-multipart 2>&1 | grep -E "(Successfully|already)" || echo "✓ Dependencies ready"
+pip3 install --break-system-packages sounddevice soundfile scipy websockets python-multipart librosa 2>&1 | grep -E "(Successfully|already)" || echo "✓ Dependencies ready"
 
 echo ""
 echo "🚀 Starting complete interface..."

@@ -26,9 +26,17 @@ try:
     from backend.queue_manager.queue import QueueManager
     from backend.queue_manager.transition_planner import TransitionPlanner
     from backend.suggestion_engine.advisor import DJAdvisor
-    from backend.audio_analysis.track_analyzer import TrackAnalyzer
     from backend.auto_dj.automation_engine import AutoDJEngine
     from backend.auto_dj.set_planner import SetPlanner
+    
+    # Try to import Essentia-based analyzer, fallback to simple one
+    try:
+        from backend.audio_analysis.track_analyzer import TrackAnalyzer
+        print("✓ Using Essentia-based analyzer")
+    except ImportError:
+        print("⚠️ Essentia not available, using librosa-only analyzer")
+        from backend.audio_analysis.simple_analyzer import SimpleTrackAnalyzer as TrackAnalyzer
+        
 except ImportError as e:
     print(f"Error importing modules: {e}")
     sys.exit(1)
@@ -1197,6 +1205,9 @@ async def main_interface():
                 const thinking = document.getElementById('thinking');
                 if (thinking) thinking.classList.add('active');
                 
+                let successCount = 0;
+                let errorCount = 0;
+                
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     
@@ -1211,11 +1222,25 @@ async def main_interface():
                     formData.append('file', file);
                     
                     try {
-                        await fetch('/upload', {
+                        console.log(`Uploading: ${file.name} (${file.size} bytes, ${file.type})`);
+                        
+                        const response = await fetch('/upload', {
                             method: 'POST',
                             body: formData
                         });
+                        
+                        const result = await response.json();
+                        console.log('Upload result:', result);
+                        
+                        if (result.status === 'ok') {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            console.error('Upload failed:', result.message);
+                            alert(`Error with ${file.name}: ${result.message}`);
+                        }
                     } catch (error) {
+                        errorCount++;
                         console.error('Error uploading:', error);
                         alert(`Error analyzing ${file.name}: ${error.message}`);
                     }
@@ -1223,6 +1248,11 @@ async def main_interface():
                 
                 overlay.classList.remove('active');
                 if (thinking) thinking.classList.remove('active');
+                
+                // Show summary
+                if (successCount > 0) {
+                    alert(`✅ Analyzed ${successCount} track(s) successfully!${errorCount > 0 ? `\n⚠️ ${errorCount} failed` : ''}`);
+                }
                 
                 selectedFiles = [];
                 fileInput.value = '';
