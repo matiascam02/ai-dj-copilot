@@ -28,6 +28,7 @@ try:
     from backend.suggestion_engine.advisor import DJAdvisor
     from backend.audio_analysis.track_analyzer import TrackAnalyzer
     from backend.auto_dj.automation_engine import AutoDJEngine
+    from backend.auto_dj.set_planner import SetPlanner
 except ImportError as e:
     print(f"Error importing modules: {e}")
     sys.exit(1)
@@ -45,6 +46,7 @@ transition_planner = TransitionPlanner()
 advisor = DJAdvisor(mixer, queue_manager, transition_planner)
 analyzer = TrackAnalyzer()
 auto_dj = AutoDJEngine(mixer, queue_manager, transition_planner)
+set_planner = SetPlanner(transition_planner)
 
 # Track library
 library = []
@@ -1463,13 +1465,30 @@ async def audio_status():
 
 # Auto DJ endpoints
 @app.post("/auto_dj/build_plan")
-async def build_auto_dj_plan():
-    """Build set plan from library"""
-    if not library:
-        raise HTTPException(status_code=400, detail="Library is empty")
+async def build_auto_dj_plan(data: dict):
+    """Build set plan from selected tracks"""
+    track_indices = data.get('track_indices', [])
     
-    plan = auto_dj.build_set_plan(library)
-    return plan
+    if not track_indices:
+        # Use all tracks if none selected
+        selected_tracks = library
+    else:
+        # Get selected tracks
+        selected_tracks = [library[i] for i in track_indices if i < len(library)]
+    
+    if not selected_tracks:
+        raise HTTPException(status_code=400, detail="No tracks selected")
+    
+    # Build automation plan
+    auto_plan = auto_dj.build_set_plan(selected_tracks)
+    
+    # Build visual roadmap
+    visual_plan = set_planner.build_visual_plan(selected_tracks)
+    
+    return {
+        **auto_plan,
+        'visual': visual_plan
+    }
 
 
 @app.post("/auto_dj/start")
