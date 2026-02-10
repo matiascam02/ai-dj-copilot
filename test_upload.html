@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Test</title>
+    <style>
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 60px;
+            margin: 20px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .upload-area:hover {
+            background: rgba(102,126,234,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload Test</h1>
+    
+    <div class="upload-area" id="upload-area">
+        <div style="font-size: 48px;">🎵</div>
+        <div>Click to browse or drag & drop files</div>
+    </div>
+    
+    <input type="file" id="file-input" multiple style="display:none;">
+    
+    <div id="status"></div>
+    
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const status = document.getElementById('status');
+        
+        console.log('Upload test initialized');
+        
+        // Click to browse
+        uploadArea.addEventListener('click', () => {
+            console.log('Upload area clicked');
+            fileInput.click();
+        });
+        
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            console.log('Files selected:', files.length);
+            status.innerHTML = `Selected ${files.length} file(s):<br>` + 
+                files.map(f => `- ${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`).join('<br>');
+        });
+        
+        // Drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = 'rgba(102,126,234,0.2)';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '';
+            const files = Array.from(e.dataTransfer.files);
+            console.log('Files dropped:', files.length);
+            status.innerHTML = `Dropped ${files.length} file(s):<br>` + 
+                files.map(f => `- ${f.name} (${(f.size/1024/1024).toFixed(2)} MB)`).join('<br>');
+        });
+    </script>
+</body>
+</html>
