@@ -1199,7 +1199,7 @@ async def upload_track(file: UploadFile = File(...)):
     
     # Analyze track
     try:
-        result = analyzer.analyze_track(str(file_path))
+        result = analyzer.analyze(str(file_path))
         
         # Add to library
         library.append(result)

@@ -51,8 +51,14 @@ class TrackAnalyzer:
         audio = loader()
         
         # Extract features
+        file_path_obj = Path(audio_path)
+        filename = file_path_obj.name
+        title = file_path_obj.stem  # Filename without extension
+        
         results = {
             "file_path": audio_path,
+            "filename": filename,
+            "title": title,
             "duration": len(audio) / 44100.0,  # Assuming 44.1kHz
         }
         
