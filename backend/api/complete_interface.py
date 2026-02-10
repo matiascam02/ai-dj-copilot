@@ -1209,11 +1209,6 @@ async def main_interface():
                 const count = selectedFiles.length;
                 const btn = document.getElementById('analyze-btn');
                 
-                console.log('📂 Files selected:', count);
-                selectedFiles.forEach((file, i) => {
-                    console.log(`  ${i+1}. ${file.name} (${(file.size/1024/1024).toFixed(2)} MB, ${file.type})`);
-                });
-                
                 btn.disabled = count === 0;
                 
                 if (count === 0) {
@@ -1226,14 +1221,7 @@ async def main_interface():
             }
             
             async function analyzeSelected() {
-                if (selectedFiles.length === 0) {
-                    console.warn('No files selected');
-                    return;
-                }
-                
-                console.log(`\n${'='.repeat(60)}`);
-                console.log(`🚀 STARTING ANALYSIS - ${selectedFiles.length} files`);
-                console.log('='.repeat(60));
+                if (selectedFiles.length === 0) return;
                 
                 const overlay = document.getElementById('progress-overlay');
                 overlay.classList.add('active');
@@ -1248,11 +1236,6 @@ async def main_interface():
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     
-                    console.log(`\n📤 Uploading ${i+1}/${selectedFiles.length}:`);
-                    console.log(`   File: ${file.name}`);
-                    console.log(`   Size: ${(file.size/1024/1024).toFixed(2)} MB`);
-                    console.log(`   Type: ${file.type || 'unknown'}`);
-                    
                     document.getElementById('progress-title').textContent = 
                         `🎵 Analyzing: ${file.name}`;
                     document.getElementById('progress-text').textContent = 
@@ -1264,29 +1247,26 @@ async def main_interface():
                     formData.append('file', file);
                     
                     try {
-                        console.log('   ⏳ Sending request...');
+                        console.log(`Uploading: ${file.name} (${file.size} bytes, ${file.type})`);
                         
                         const response = await fetch('/upload', {
                             method: 'POST',
                             body: formData
                         });
                         
-                        console.log(`   ✓ Response status: ${response.status}`);
-                        
                         const result = await response.json();
-                        console.log('   ✓ Result:', result);
+                        console.log('Upload result:', result);
                         
                         if (result.status === 'ok') {
                             successCount++;
-                            console.log(`   ✅ SUCCESS - BPM: ${result.track.bpm?.toFixed(0)}, Key: ${result.track.key}`);
                         } else {
                             errorCount++;
-                            console.error(`   ❌ FAILED: ${result.message}`);
+                            console.error('Upload failed:', result.message);
                             alert(`Error with ${file.name}: ${result.message}`);
                         }
                     } catch (error) {
                         errorCount++;
-                        console.error(`   ❌ ERROR:`, error);
+                        console.error('Error uploading:', error);
                         alert(`Error analyzing ${file.name}: ${error.message}`);
                     }
                 }
@@ -1496,13 +1476,7 @@ async def main_interface():
             }
             
             async function buildSetPreview() {
-                if (selectedTracks.length < 2) {
-                    console.warn('Need at least 2 tracks selected');
-                    return;
-                }
-                
-                console.log('\n🎯 Building set preview...');
-                console.log('Selected track indices:', selectedTracks);
+                if (selectedTracks.length < 2) return;
                 
                 // Show loading
                 document.getElementById('progress-overlay').classList.add('active');
@@ -1511,34 +1485,21 @@ async def main_interface():
                 document.getElementById('progress-fill').style.width = '50%';
                 
                 try {
-                    console.log('📤 Sending request to /auto_dj/build_plan');
-                    
                     const response = await fetch('/auto_dj/build_plan', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({track_indices: selectedTracks})
                     });
                     
-                    console.log('✓ Response status:', response.status);
-                    
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error('❌ Server error:', errorText);
-                        throw new Error(`Server error (${response.status}): ${errorText}`);
-                    }
-                    
                     const plan = await response.json();
-                    console.log('✓ Plan received:', plan);
                     
                     if (plan.status === 'ok') {
                         currentPreviewPlan = plan;
                         showPreviewModal(plan);
                     } else {
-                        console.error('❌ Plan failed:', plan);
-                        alert('Error building plan: ' + (plan.message || plan.detail || 'Unknown error'));
+                        alert('Error building plan: ' + plan.message);
                     }
                 } catch (error) {
-                    console.error('❌ Error building plan:', error);
                     alert('Error: ' + error.message);
                 } finally {
                     document.getElementById('progress-overlay').classList.remove('active');
@@ -1970,25 +1931,14 @@ async def main_interface():
 async def upload_track(file: UploadFile = File(...)):
     """Upload and analyze a track"""
     
-    print(f"\n{'='*60}")
-    print(f"📥 UPLOAD REQUEST")
-    print(f"{'='*60}")
-    print(f"Filename: {file.filename}")
-    print(f"Content-Type: {file.content_type}")
-    print(f"Size: {file.size if hasattr(file, 'size') else 'unknown'} bytes")
-    
     # Validate file type
     allowed_extensions = {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.aiff', '.aif'}
     file_ext = Path(file.filename).suffix.lower()
     
-    print(f"Extension: {file_ext}")
-    
     if file_ext not in allowed_extensions:
-        error_msg = f"Unsupported format: {file_ext}. Supported: {', '.join(allowed_extensions)}"
-        print(f"❌ {error_msg}")
         return {
             "status": "error",
-            "message": error_msg
+            "message": f"Unsupported format: {file_ext}. Supported: {', '.join(allowed_extensions)}"
         }
     
     # Save file
@@ -1996,53 +1946,32 @@ async def upload_track(file: UploadFile = File(...)):
     upload_dir.mkdir(parents=True, exist_ok=True)
     
     file_path = upload_dir / file.filename
-    print(f"Saving to: {file_path}")
     
-    try:
-        with open(file_path, 'wb') as f:
-            shutil.copyfileobj(file.file, f)
-        
-        file_size = file_path.stat().st_size
-        print(f"✓ Saved: {file_size} bytes")
-        
-    except Exception as e:
-        print(f"❌ Error saving file: {e}")
-        return {"status": "error", "message": f"Failed to save file: {e}"}
+    with open(file_path, 'wb') as f:
+        shutil.copyfileobj(file.file, f)
+    
+    print(f"📥 Uploaded: {file.filename} ({file_ext})")
     
     # Analyze track
-    print(f"🔍 Starting analysis...")
     try:
         result = analyzer.analyze(str(file_path))
-        
-        print(f"✓ Analysis complete:")
-        print(f"  BPM: {result.get('bpm', '?')}")
-        print(f"  Key: {result.get('key', '?')}")
-        print(f"  Duration: {result.get('duration', '?'):.1f}s")
         
         # Add to library
         library.append(result)
         save_library()
         
-        print(f"✓ Added to library (total: {len(library)} tracks)")
-        print(f"{'='*60}\n")
+        print(f"✅ Analyzed: {file.filename} - {result['bpm']:.0f} BPM, {result['key']}")
         
         return {"status": "ok", "track": result}
         
     except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"❌ Error analyzing {file.filename}:")
-        print(error_details)
-        print(f"{'='*60}\n")
-        
+        print(f"❌ Error analyzing {file.filename}: {e}")
         # Clean up failed file
         try:
             file_path.unlink()
-            print(f"🗑️ Deleted failed file")
         except:
             pass
-        
-        return {"status": "error", "message": f"Analysis failed: {str(e)}"}
+        return {"status": "error", "message": str(e)}
 
 
 # Get library
@@ -2262,56 +2191,28 @@ async def audio_status():
 @app.post("/auto_dj/build_plan")
 async def build_auto_dj_plan(data: dict):
     """Build set plan from selected tracks"""
-    try:
-        print(f"\n{'='*60}")
-        print(f"🎯 BUILD SET PLAN REQUEST")
-        print(f"{'='*60}")
-        print(f"Request data: {data}")
-        
-        track_indices = data.get('track_indices', [])
-        print(f"Track indices: {track_indices}")
-        print(f"Library size: {len(library)}")
-        
-        if not track_indices:
-            # Use all tracks if none selected
-            selected_tracks = library
-            print(f"Using all {len(library)} tracks")
-        else:
-            # Get selected tracks
-            selected_tracks = [library[i] for i in track_indices if i < len(library)]
-            print(f"Selected {len(selected_tracks)} tracks from indices")
-        
-        if not selected_tracks:
-            raise HTTPException(status_code=400, detail="No tracks selected")
-        
-        print(f"\nSelected tracks:")
-        for i, track in enumerate(selected_tracks):
-            print(f"  {i+1}. {track.get('title', 'Unknown')} - {track.get('bpm', '?')} BPM, {track.get('key', '?')}")
-        
-        # Build automation plan
-        print(f"\n🤖 Building automation plan...")
-        auto_plan = auto_dj.build_set_plan(selected_tracks)
-        print(f"✓ Automation plan complete")
-        
-        # Build visual roadmap
-        print(f"🎨 Building visual roadmap...")
-        visual_plan = set_planner.build_visual_plan(selected_tracks)
-        print(f"✓ Visual roadmap complete")
-        
-        print(f"{'='*60}\n")
-        
-        return {
-            **auto_plan,
-            'visual': visual_plan
-        }
-        
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"\n❌ ERROR IN BUILD_SET_PLAN:")
-        print(error_details)
-        print(f"{'='*60}\n")
-        raise HTTPException(status_code=500, detail=f"Failed to build plan: {str(e)}")
+    track_indices = data.get('track_indices', [])
+    
+    if not track_indices:
+        # Use all tracks if none selected
+        selected_tracks = library
+    else:
+        # Get selected tracks
+        selected_tracks = [library[i] for i in track_indices if i < len(library)]
+    
+    if not selected_tracks:
+        raise HTTPException(status_code=400, detail="No tracks selected")
+    
+    # Build automation plan
+    auto_plan = auto_dj.build_set_plan(selected_tracks)
+    
+    # Build visual roadmap
+    visual_plan = set_planner.build_visual_plan(selected_tracks)
+    
+    return {
+        **auto_plan,
+        'visual': visual_plan
+    }
 
 
 @app.post("/auto_dj/start")
