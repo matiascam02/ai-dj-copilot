@@ -27,6 +27,7 @@ try:
     from backend.queue_manager.transition_planner import TransitionPlanner
     from backend.suggestion_engine.advisor import DJAdvisor
     from backend.audio_analysis.track_analyzer import TrackAnalyzer
+    from backend.auto_dj.automation_engine import AutoDJEngine
 except ImportError as e:
     print(f"Error importing modules: {e}")
     sys.exit(1)
@@ -43,6 +44,7 @@ queue_manager = QueueManager()
 transition_planner = TransitionPlanner()
 advisor = DJAdvisor(mixer, queue_manager, transition_planner)
 analyzer = TrackAnalyzer()
+auto_dj = AutoDJEngine(mixer, queue_manager, transition_planner)
 
 # Track library
 library = []
@@ -559,6 +561,63 @@ async def main_interface():
                 background: linear-gradient(90deg, #667eea, #764ba2);
                 transition: width 0.1s;
             }
+            
+            /* Auto DJ controls */
+            .auto-dj-section {
+                background: #2a2a2a;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .auto-dj-section.active {
+                background: linear-gradient(135deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3));
+                border: 2px solid #667eea;
+            }
+            
+            .auto-dj-button {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                margin-bottom: 10px;
+            }
+            
+            .auto-dj-button.active {
+                background: linear-gradient(135deg, #2ecc71, #27ae60);
+            }
+            
+            .auto-dj-button.stop {
+                background: linear-gradient(135deg, #e74c3c, #c0392b);
+            }
+            
+            .auto-dj-status {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 10px;
+                font-size: 14px;
+            }
+            
+            .auto-dj-status .action {
+                font-weight: 600;
+                color: #667eea;
+                margin-bottom: 5px;
+            }
+            
+            .auto-dj-status .details {
+                color: #aaa;
+            }
+            
+            .auto-dj-controls {
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            
+            .auto-dj-controls button {
+                flex: 1;
+            }
         </style>
     </head>
     <body>
@@ -645,6 +704,27 @@ async def main_interface():
                     
                     <!-- Center panel -->
                     <div class="center-panel">
+                        <!-- Auto DJ Section -->
+                        <div class="auto-dj-section" id="auto-dj-section">
+                            <h3 style="margin-bottom: 15px;">🤖 Auto DJ</h3>
+                            <button class="auto-dj-button" id="auto-dj-toggle" onclick="toggleAutoDJ()">
+                                Enable Auto DJ
+                            </button>
+                            <div class="auto-dj-controls" id="auto-dj-controls" style="display: none;">
+                                <button onclick="pauseAutoDJ()">⏸ Pause</button>
+                                <button onclick="resumeAutoDJ()">▶️ Resume</button>
+                                <button class="auto-dj-button stop" onclick="stopAutoDJ()">⏹ Stop</button>
+                            </div>
+                            <div class="auto-dj-status" id="auto-dj-status" style="display: none;">
+                                <div class="action" id="auto-action">Idle</div>
+                                <div class="details" id="auto-details"></div>
+                                <div style="margin-top: 10px; font-size: 12px; color: #888;">
+                                    Track <span id="auto-track-progress">0/0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Suggestions -->
                         <div class="suggestion-card low" id="suggestion">
                             <div class="suggestion-message" id="sug-msg">Load tracks to start</div>
                             <div class="suggestion-timing" id="sug-time"></div>
@@ -907,6 +987,7 @@ async def main_interface():
             function updateDJUI(data) {
                 const mixer = data.mixer;
                 const suggestion = data.suggestion;
+                const autoDJ = data.auto_dj;
                 
                 // Update decks
                 updateDeck('a', mixer.deck_a);
@@ -917,24 +998,102 @@ async def main_interface():
                     updateCrossfaderUI(mixer.crossfader);
                 }
                 
+                // Update Auto DJ status
+                updateAutoDJUI(autoDJ);
+                
                 // Update suggestion (make it prominent!)
                 const sugCard = document.getElementById('suggestion');
                 const sugMsg = document.getElementById('sug-msg');
                 const sugTime = document.getElementById('sug-time');
                 
-                sugMsg.textContent = suggestion.message || '🎧 Ready to DJ';
-                sugTime.textContent = suggestion.timing || '';
-                
-                // Update card style based on urgency
-                sugCard.className = `suggestion-card ${suggestion.urgency || 'low'}`;
-                
-                // Flash animation on urgent messages
-                if (suggestion.urgency === 'high') {
-                    sugCard.style.boxShadow = '0 0 30px rgba(231, 76, 60, 0.8)';
-                } else if (suggestion.urgency === 'medium') {
-                    sugCard.style.boxShadow = '0 0 20px rgba(243, 156, 18, 0.6)';
+                // If Auto DJ is running, show automation status instead
+                if (autoDJ && autoDJ.running) {
+                    sugMsg.textContent = '🤖 ' + autoDJ.action_details;
+                    sugTime.textContent = autoDJ.paused ? '⏸ PAUSED' : '🟢 AUTO';
+                    sugCard.className = 'suggestion-card low';
                 } else {
-                    sugCard.style.boxShadow = 'none';
+                    sugMsg.textContent = suggestion.message || '🎧 Ready to DJ';
+                    sugTime.textContent = suggestion.timing || '';
+                    
+                    // Update card style based on urgency
+                    sugCard.className = `suggestion-card ${suggestion.urgency || 'low'}`;
+                    
+                    // Flash animation on urgent messages
+                    if (suggestion.urgency === 'high') {
+                        sugCard.style.boxShadow = '0 0 30px rgba(231, 76, 60, 0.8)';
+                    } else if (suggestion.urgency === 'medium') {
+                        sugCard.style.boxShadow = '0 0 20px rgba(243, 156, 18, 0.6)';
+                    } else {
+                        sugCard.style.boxShadow = 'none';
+                    }
+                }
+            }
+            
+            function updateAutoDJUI(autoDJ) {
+                if (!autoDJ) return;
+                
+                const section = document.getElementById('auto-dj-section');
+                const toggle = document.getElementById('auto-dj-toggle');
+                const controls = document.getElementById('auto-dj-controls');
+                const status = document.getElementById('auto-dj-status');
+                const action = document.getElementById('auto-action');
+                const details = document.getElementById('auto-details');
+                const progress = document.getElementById('auto-track-progress');
+                
+                if (autoDJ.running) {
+                    section.classList.add('active');
+                    toggle.style.display = 'none';
+                    controls.style.display = 'flex';
+                    status.style.display = 'block';
+                    
+                    action.textContent = autoDJ.current_action.replace(/_/g, ' ').toUpperCase();
+                    details.textContent = autoDJ.action_details;
+                    progress.textContent = `${autoDJ.current_track_index + 1}/${autoDJ.total_tracks}`;
+                } else {
+                    section.classList.remove('active');
+                    toggle.style.display = 'block';
+                    controls.style.display = 'none';
+                    status.style.display = 'none';
+                    
+                    if (autoDJ.enabled) {
+                        toggle.textContent = '🤖 Auto DJ Ready';
+                        toggle.className = 'auto-dj-button active';
+                    } else {
+                        toggle.textContent = 'Enable Auto DJ';
+                        toggle.className = 'auto-dj-button';
+                    }
+                }
+            }
+            
+            async function toggleAutoDJ() {
+                const response = await fetch('/auto_dj/build_plan', {method: 'POST'});
+                const plan = await response.json();
+                
+                if (plan.status === 'ok') {
+                    alert(`Set Plan Built!\n${plan.tracks} tracks, ${Math.floor(plan.total_duration / 60)} minutes`);
+                    
+                    const startResponse = await fetch('/auto_dj/start', {method: 'POST'});
+                    const result = await startResponse.json();
+                    
+                    if (result.status === 'ok') {
+                        console.log('Auto DJ started!');
+                    }
+                } else {
+                    alert('Error: ' + plan.message);
+                }
+            }
+            
+            async function pauseAutoDJ() {
+                await fetch('/auto_dj/pause', {method: 'POST'});
+            }
+            
+            async function resumeAutoDJ() {
+                await fetch('/auto_dj/resume', {method: 'POST'});
+            }
+            
+            async function stopAutoDJ() {
+                if (confirm('Stop Auto DJ?')) {
+                    await fetch('/auto_dj/stop', {method: 'POST'});
                 }
             }
             
@@ -1074,7 +1233,8 @@ async def websocket_endpoint(websocket: WebSocket):
             status = {
                 'mixer': mixer.get_status(),
                 'suggestion': advisor.get_suggestion(),
-                'queue': queue_manager.get_queue_info()
+                'queue': queue_manager.get_queue_info(),
+                'auto_dj': auto_dj.get_status()
             }
             
             await websocket.send_json(status)
@@ -1142,6 +1302,51 @@ async def audio_status():
         'crossfader_a_level': mixer._get_a_level() if mixer.is_running else 0,
         'crossfader_b_level': mixer._get_b_level() if mixer.is_running else 0
     }
+
+
+# Auto DJ endpoints
+@app.post("/auto_dj/build_plan")
+async def build_auto_dj_plan():
+    """Build set plan from library"""
+    if not library:
+        raise HTTPException(status_code=400, detail="Library is empty")
+    
+    plan = auto_dj.build_set_plan(library)
+    return plan
+
+
+@app.post("/auto_dj/start")
+async def start_auto_dj():
+    """Start Auto DJ mode"""
+    result = auto_dj.start()
+    return result
+
+
+@app.post("/auto_dj/stop")
+async def stop_auto_dj():
+    """Stop Auto DJ mode"""
+    result = auto_dj.stop()
+    return result
+
+
+@app.post("/auto_dj/pause")
+async def pause_auto_dj():
+    """Pause Auto DJ (human override)"""
+    auto_dj.pause()
+    return {'status': 'ok', 'message': 'Auto DJ paused'}
+
+
+@app.post("/auto_dj/resume")
+async def resume_auto_dj():
+    """Resume Auto DJ after override"""
+    auto_dj.resume()
+    return {'status': 'ok', 'message': 'Auto DJ resumed'}
+
+
+@app.get("/auto_dj/status")
+async def get_auto_dj_status():
+    """Get Auto DJ status"""
+    return auto_dj.get_status()
 
 
 if __name__ == "__main__":
