@@ -202,6 +202,7 @@ async def main_interface():
                 margin: 20px 0;
                 cursor: pointer;
                 transition: all 0.3s;
+                text-align: center;
             }
             
             .upload-area:hover {
@@ -1213,9 +1214,6 @@ async def main_interface():
                 });
             }
             
-            // Initialize upload
-            initUpload();
-            
             function handleFiles(files) {
                 selectedFiles = Array.from(files);
                 const count = selectedFiles.length;
@@ -1983,6 +1981,9 @@ async def main_interface():
             
             // Initialize crossfader display
             updateCrossfaderUI(-1);  // Start at full A
+            
+            // Initialize upload (after DOM is ready)
+            initUpload();
         </script>
     </body>
     </html>
