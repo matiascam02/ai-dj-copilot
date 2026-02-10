@@ -1194,6 +1194,11 @@ async def main_interface():
                 const count = selectedFiles.length;
                 const btn = document.getElementById('analyze-btn');
                 
+                console.log('📂 Files selected:', count);
+                selectedFiles.forEach((file, i) => {
+                    console.log(`  ${i+1}. ${file.name} (${(file.size/1024/1024).toFixed(2)} MB, ${file.type})`);
+                });
+                
                 btn.disabled = count === 0;
                 
                 if (count === 0) {
@@ -1206,7 +1211,14 @@ async def main_interface():
             }
             
             async function analyzeSelected() {
-                if (selectedFiles.length === 0) return;
+                if (selectedFiles.length === 0) {
+                    console.warn('No files selected');
+                    return;
+                }
+                
+                console.log(`\n${'='.repeat(60)}`);
+                console.log(`🚀 STARTING ANALYSIS - ${selectedFiles.length} files`);
+                console.log('='.repeat(60));
                 
                 const overlay = document.getElementById('progress-overlay');
                 overlay.classList.add('active');
@@ -1221,6 +1233,11 @@ async def main_interface():
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     
+                    console.log(`\n📤 Uploading ${i+1}/${selectedFiles.length}:`);
+                    console.log(`   File: ${file.name}`);
+                    console.log(`   Size: ${(file.size/1024/1024).toFixed(2)} MB`);
+                    console.log(`   Type: ${file.type || 'unknown'}`);
+                    
                     document.getElementById('progress-title').textContent = 
                         `🎵 Analyzing: ${file.name}`;
                     document.getElementById('progress-text').textContent = 
@@ -1232,26 +1249,29 @@ async def main_interface():
                     formData.append('file', file);
                     
                     try {
-                        console.log(`Uploading: ${file.name} (${file.size} bytes, ${file.type})`);
+                        console.log('   ⏳ Sending request...');
                         
                         const response = await fetch('/upload', {
                             method: 'POST',
                             body: formData
                         });
                         
+                        console.log(`   ✓ Response status: ${response.status}`);
+                        
                         const result = await response.json();
-                        console.log('Upload result:', result);
+                        console.log('   ✓ Result:', result);
                         
                         if (result.status === 'ok') {
                             successCount++;
+                            console.log(`   ✅ SUCCESS - BPM: ${result.track.bpm?.toFixed(0)}, Key: ${result.track.key}`);
                         } else {
                             errorCount++;
-                            console.error('Upload failed:', result.message);
+                            console.error(`   ❌ FAILED: ${result.message}`);
                             alert(`Error with ${file.name}: ${result.message}`);
                         }
                     } catch (error) {
                         errorCount++;
-                        console.error('Error uploading:', error);
+                        console.error(`   ❌ ERROR:`, error);
                         alert(`Error analyzing ${file.name}: ${error.message}`);
                     }
                 }
@@ -1887,14 +1907,25 @@ async def main_interface():
 async def upload_track(file: UploadFile = File(...)):
     """Upload and analyze a track"""
     
+    print(f"\n{'='*60}")
+    print(f"📥 UPLOAD REQUEST")
+    print(f"{'='*60}")
+    print(f"Filename: {file.filename}")
+    print(f"Content-Type: {file.content_type}")
+    print(f"Size: {file.size if hasattr(file, 'size') else 'unknown'} bytes")
+    
     # Validate file type
     allowed_extensions = {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.aiff', '.aif'}
     file_ext = Path(file.filename).suffix.lower()
     
+    print(f"Extension: {file_ext}")
+    
     if file_ext not in allowed_extensions:
+        error_msg = f"Unsupported format: {file_ext}. Supported: {', '.join(allowed_extensions)}"
+        print(f"❌ {error_msg}")
         return {
             "status": "error",
-            "message": f"Unsupported format: {file_ext}. Supported: {', '.join(allowed_extensions)}"
+            "message": error_msg
         }
     
     # Save file
@@ -1902,32 +1933,53 @@ async def upload_track(file: UploadFile = File(...)):
     upload_dir.mkdir(parents=True, exist_ok=True)
     
     file_path = upload_dir / file.filename
+    print(f"Saving to: {file_path}")
     
-    with open(file_path, 'wb') as f:
-        shutil.copyfileobj(file.file, f)
-    
-    print(f"📥 Uploaded: {file.filename} ({file_ext})")
+    try:
+        with open(file_path, 'wb') as f:
+            shutil.copyfileobj(file.file, f)
+        
+        file_size = file_path.stat().st_size
+        print(f"✓ Saved: {file_size} bytes")
+        
+    except Exception as e:
+        print(f"❌ Error saving file: {e}")
+        return {"status": "error", "message": f"Failed to save file: {e}"}
     
     # Analyze track
+    print(f"🔍 Starting analysis...")
     try:
         result = analyzer.analyze(str(file_path))
+        
+        print(f"✓ Analysis complete:")
+        print(f"  BPM: {result.get('bpm', '?')}")
+        print(f"  Key: {result.get('key', '?')}")
+        print(f"  Duration: {result.get('duration', '?'):.1f}s")
         
         # Add to library
         library.append(result)
         save_library()
         
-        print(f"✅ Analyzed: {file.filename} - {result['bpm']:.0f} BPM, {result['key']}")
+        print(f"✓ Added to library (total: {len(library)} tracks)")
+        print(f"{'='*60}\n")
         
         return {"status": "ok", "track": result}
         
     except Exception as e:
-        print(f"❌ Error analyzing {file.filename}: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Error analyzing {file.filename}:")
+        print(error_details)
+        print(f"{'='*60}\n")
+        
         # Clean up failed file
         try:
             file_path.unlink()
+            print(f"🗑️ Deleted failed file")
         except:
             pass
-        return {"status": "error", "message": str(e)}
+        
+        return {"status": "error", "message": f"Analysis failed: {str(e)}"}
 
 
 # Get library
