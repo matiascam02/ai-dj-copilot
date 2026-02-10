@@ -679,13 +679,14 @@ async def main_interface():
                          onclick="document.getElementById('file-input').click()">
                         <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
                         <div style="font-size: 18px; margin-bottom: 10px;">
-                            Drag & drop MP3 files here
+                            Drag & drop audio files here
                         </div>
                         <div style="color: #888;">
+                            MP3, WAV, FLAC, M4A, AAC, OGG, AIFF<br>
                             or click to browse
                         </div>
                     </div>
-                    <input type="file" id="file-input" multiple accept="audio/mp3,audio/mpeg">
+                    <input type="file" id="file-input" multiple accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.aiff">
                     <button onclick="analyzeSelected()" id="analyze-btn" disabled>
                         🔍 Analyze Selected Tracks
                     </button>
@@ -872,9 +873,18 @@ async def main_interface():
             
             function handleFiles(files) {
                 selectedFiles = Array.from(files);
-                document.getElementById('analyze-btn').disabled = selectedFiles.length === 0;
-                document.getElementById('analyze-btn').textContent = 
-                    `🔍 Analyze ${selectedFiles.length} Track(s)`;
+                const count = selectedFiles.length;
+                const btn = document.getElementById('analyze-btn');
+                
+                btn.disabled = count === 0;
+                
+                if (count === 0) {
+                    btn.textContent = '🔍 Analyze Selected Tracks';
+                } else if (count === 1) {
+                    btn.textContent = `🔍 Analyze 1 Track`;
+                } else {
+                    btn.textContent = `🔍 Analyze ${count} Tracks`;
+                }
             }
             
             async function analyzeSelected() {
@@ -1281,6 +1291,16 @@ async def main_interface():
 async def upload_track(file: UploadFile = File(...)):
     """Upload and analyze a track"""
     
+    # Validate file type
+    allowed_extensions = {'.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg', '.aiff', '.aif'}
+    file_ext = Path(file.filename).suffix.lower()
+    
+    if file_ext not in allowed_extensions:
+        return {
+            "status": "error",
+            "message": f"Unsupported format: {file_ext}. Supported: {', '.join(allowed_extensions)}"
+        }
+    
     # Save file
     upload_dir = Path("data/tracks/uploads")
     upload_dir.mkdir(parents=True, exist_ok=True)
@@ -1290,7 +1310,7 @@ async def upload_track(file: UploadFile = File(...)):
     with open(file_path, 'wb') as f:
         shutil.copyfileobj(file.file, f)
     
-    print(f"📥 Uploaded: {file.filename}")
+    print(f"📥 Uploaded: {file.filename} ({file_ext})")
     
     # Analyze track
     try:
@@ -1306,6 +1326,11 @@ async def upload_track(file: UploadFile = File(...)):
         
     except Exception as e:
         print(f"❌ Error analyzing {file.filename}: {e}")
+        # Clean up failed file
+        try:
+            file_path.unlink()
+        except:
+            pass
         return {"status": "error", "message": str(e)}
 
 
