@@ -1276,8 +1276,11 @@ async def main_interface():
                 tracks.forEach((track, index) => {
                     const card = document.createElement('div');
                     card.className = 'track-card has-checkbox';
+                    card.dataset.index = index;
+                    card.dataset.filepath = track.file_path;
+                    
                     card.onclick = (e) => {
-                        if (e.target.type !== 'checkbox' && e.target.className !== 'delete-btn') {
+                        if (e.target.type !== 'checkbox' && !e.target.classList.contains('delete-btn')) {
                             selectTrack(track, card);
                         }
                     };
@@ -1289,11 +1292,11 @@ async def main_interface():
                     const duration = track.duration ? (track.duration / 60).toFixed(1) : '?';
                     const energy = track.energy !== undefined ? (track.energy * 10).toFixed(1) : '?';
                     
+                    // Create elements without inline onclick to avoid escaping issues
                     card.innerHTML = `
                         <input type="checkbox" class="track-checkbox" 
-                               onchange="toggleTrackSelection(${index}, event)" 
                                id="track-check-${index}">
-                        <button class="delete-btn" onclick="deleteTrack(event, '${track.file_path}')">×</button>
+                        <button class="delete-btn">×</button>
                         <div class="track-title">${title}</div>
                         <div class="track-info">
                             <span class="badge">${bpm} BPM</span>
@@ -1302,6 +1305,19 @@ async def main_interface():
                             <span class="badge">Energy: ${energy}</span>
                         </div>
                     `;
+                    
+                    // Attach event listeners properly
+                    const checkbox = card.querySelector('.track-checkbox');
+                    checkbox.addEventListener('change', (e) => {
+                        e.stopPropagation();
+                        toggleTrackSelection(index, e);
+                    });
+                    
+                    const deleteBtn = card.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteTrack(e, track.file_path);
+                    });
                     
                     grid.appendChild(card);
                 });
@@ -1386,9 +1402,9 @@ async def main_interface():
             }
             
             function toggleTrackSelection(index, event) {
-                event.stopPropagation();
+                const checkbox = document.getElementById(`track-check-${index}`);
                 
-                if (event.target.checked) {
+                if (checkbox.checked) {
                     if (!selectedTracks.includes(index)) {
                         selectedTracks.push(index);
                     }
