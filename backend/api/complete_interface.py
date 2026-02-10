@@ -290,6 +290,237 @@ async def main_interface():
                 transform: scale(1.1);
             }
             
+            /* Track selection */
+            .track-checkbox {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                width: 24px;
+                height: 24px;
+                cursor: pointer;
+                z-index: 10;
+            }
+            
+            .track-card.has-checkbox {
+                padding-left: 45px;
+            }
+            
+            /* Build Plan Button */
+            .build-plan-section {
+                background: #2a2a2a;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px 0;
+                text-align: center;
+            }
+            
+            .build-plan-btn {
+                padding: 15px 30px;
+                font-size: 18px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            
+            .build-plan-btn:disabled {
+                background: #555;
+                cursor: not-allowed;
+            }
+            
+            /* Preview Modal */
+            .preview-modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.9);
+                z-index: 2000;
+                overflow-y: auto;
+                padding: 20px;
+            }
+            
+            .preview-modal.active {
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+            }
+            
+            .preview-content {
+                background: #2a2a2a;
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 1200px;
+                width: 100%;
+                margin: 20px;
+            }
+            
+            .preview-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 30px;
+            }
+            
+            .preview-header h2 {
+                font-size: 28px;
+                color: #667eea;
+            }
+            
+            .close-preview {
+                background: #555;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                color: white;
+                cursor: pointer;
+            }
+            
+            .track-order {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .track-order h3 {
+                margin-bottom: 15px;
+                color: #667eea;
+            }
+            
+            .track-order-item {
+                padding: 10px;
+                margin: 8px 0;
+                background: #2a2a2a;
+                border-radius: 6px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .timeline-section {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            
+            .timeline-section h3 {
+                margin-bottom: 15px;
+                color: #667eea;
+                sticky: top;
+                background: #1a1a1a;
+            }
+            
+            .timeline-event {
+                padding: 12px;
+                margin: 8px 0;
+                background: #2a2a2a;
+                border-radius: 6px;
+                border-left: 4px solid #667eea;
+            }
+            
+            .timeline-event.transition {
+                border-left-color: #f39c12;
+            }
+            
+            .timeline-event.action {
+                border-left-color: #e74c3c;
+            }
+            
+            .timeline-time {
+                font-weight: bold;
+                color: #667eea;
+                margin-right: 10px;
+            }
+            
+            .timeline-icon {
+                font-size: 18px;
+                margin-right: 8px;
+            }
+            
+            .transitions-summary {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .transitions-summary h3 {
+                margin-bottom: 15px;
+                color: #667eea;
+            }
+            
+            .transition-item {
+                padding: 15px;
+                margin: 10px 0;
+                background: #2a2a2a;
+                border-radius: 6px;
+            }
+            
+            .transition-title {
+                font-weight: bold;
+                margin-bottom: 10px;
+                font-size: 16px;
+            }
+            
+            .transition-details {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                font-size: 14px;
+                color: #aaa;
+            }
+            
+            .compatibility-good { color: #2ecc71; }
+            .compatibility-ok { color: #f39c12; }
+            .compatibility-poor { color: #e74c3c; }
+            
+            .preview-actions {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                margin-top: 30px;
+            }
+            
+            .preview-actions button {
+                padding: 15px 40px;
+                font-size: 18px;
+            }
+            
+            .start-auto-btn {
+                background: linear-gradient(135deg, #2ecc71, #27ae60);
+            }
+            
+            /* Enhanced suggestions */
+            .suggestion-details {
+                background: #1a1a1a;
+                border-radius: 8px;
+                padding: 15px;
+                margin-top: 10px;
+                font-size: 14px;
+            }
+            
+            .suggestion-next-actions {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #333;
+            }
+            
+            .next-action {
+                padding: 8px;
+                margin: 5px 0;
+                background: rgba(102,126,234,0.1);
+                border-radius: 4px;
+                font-size: 13px;
+            }
+            
             .track-title {
                 font-size: 16px;
                 font-weight: 600;
@@ -692,13 +923,26 @@ async def main_interface():
                     </button>
                 </div>
                 
+                <!-- Build Set Plan Section -->
+                <div class="build-plan-section" id="build-plan-section" style="display: none;">
+                    <h3 style="margin-bottom: 15px;">🎯 Build Your Set</h3>
+                    <button class="build-plan-btn" id="build-plan-btn" onclick="buildSetPreview()" disabled>
+                        Build Set Plan (0 tracks selected)
+                    </button>
+                </div>
+                
                 <!-- Library grid -->
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
                         <h3>Your Library (<span id="track-count">0</span> tracks)</h3>
-                        <button onclick="clearLibrary()" style="background: #e74c3c; padding: 8px 16px;">
-                            🗑️ Clear All
-                        </button>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="toggleSelectAll()" id="select-all-btn" style="background: #667eea; padding: 8px 16px;">
+                                ☑️ Select All
+                            </button>
+                            <button onclick="clearLibrary()" style="background: #e74c3c; padding: 8px 16px;">
+                                🗑️ Clear All
+                            </button>
+                        </div>
                     </div>
                     <div class="library-grid" id="library-grid">
                         <!-- Tracks appear here -->
@@ -843,9 +1087,65 @@ async def main_interface():
             </div>
         </div>
         
+        <!-- Preview Modal -->
+        <div class="preview-modal" id="preview-modal">
+            <div class="preview-content">
+                <div class="preview-header">
+                    <h2>🎯 Set Plan Preview</h2>
+                    <button class="close-preview" onclick="closePreview()">✕ Close</button>
+                </div>
+                
+                <!-- Set Summary -->
+                <div style="background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="preview-duration">
+                        15m 32s
+                    </div>
+                    <div style="color: #aaa; margin-top: 5px;" id="preview-tracks">
+                        3 tracks • 2 transitions
+                    </div>
+                </div>
+                
+                <!-- Track Order -->
+                <div class="track-order">
+                    <h3>📋 Track Order</h3>
+                    <div id="preview-track-list">
+                        <!-- Track list appears here -->
+                    </div>
+                </div>
+                
+                <!-- Timeline -->
+                <div class="timeline-section">
+                    <h3>⏱️ Timeline</h3>
+                    <div id="preview-timeline">
+                        <!-- Timeline events appear here -->
+                    </div>
+                </div>
+                
+                <!-- Transitions Summary -->
+                <div class="transitions-summary">
+                    <h3>🔀 Transitions</h3>
+                    <div id="preview-transitions">
+                        <!-- Transition details appear here -->
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="preview-actions">
+                    <button onclick="closePreview()" class="secondary">
+                        ← Back to Selection
+                    </button>
+                    <button onclick="startAutoDJFromPreview()" class="start-auto-btn">
+                        🚀 Start Auto DJ
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <script>
             let selectedFiles = [];
             let selectedTrack = null;
+            let selectedTracks = [];  // For multi-select
+            let currentPreviewPlan = null;
             let ws = null;
             
             // Drag & drop
@@ -935,15 +1235,22 @@ async def main_interface():
                 const response = await fetch('/library');
                 const tracks = await response.json();
                 
+                // Save to session storage for access
+                sessionStorage.setItem('library', JSON.stringify(tracks));
+                
                 document.getElementById('track-count').textContent = tracks.length;
                 
                 const grid = document.getElementById('library-grid');
                 grid.innerHTML = '';
                 
-                tracks.forEach(track => {
+                tracks.forEach((track, index) => {
                     const card = document.createElement('div');
-                    card.className = 'track-card';
-                    card.onclick = () => selectTrack(track, card);
+                    card.className = 'track-card has-checkbox';
+                    card.onclick = (e) => {
+                        if (e.target.type !== 'checkbox' && e.target.className !== 'delete-btn') {
+                            selectTrack(track, card);
+                        }
+                    };
                     
                     // Safe access to track properties
                     const title = track.title || track.filename || 'Unknown Track';
@@ -953,6 +1260,9 @@ async def main_interface():
                     const energy = track.energy !== undefined ? (track.energy * 10).toFixed(1) : '?';
                     
                     card.innerHTML = `
+                        <input type="checkbox" class="track-checkbox" 
+                               onchange="toggleTrackSelection(${index}, event)" 
+                               id="track-check-${index}">
                         <button class="delete-btn" onclick="deleteTrack(event, '${track.file_path}')">×</button>
                         <div class="track-title">${title}</div>
                         <div class="track-info">
@@ -965,6 +1275,11 @@ async def main_interface():
                     
                     grid.appendChild(card);
                 });
+                
+                // Show build plan section if tracks exist
+                if (tracks.length > 0) {
+                    document.getElementById('build-plan-section').style.display = 'block';
+                }
             }
             
             function selectTrack(track, element) {
@@ -1029,12 +1344,181 @@ async def main_interface():
                     if (result.status === 'ok') {
                         loadLibrary();
                         selectedTrack = null;
+                        selectedTracks = [];
                         document.getElementById('load-buttons').style.display = 'none';
+                        updateBuildPlanButton();
                     } else {
                         alert('Error clearing library: ' + result.message);
                     }
                 } catch (error) {
                     alert('Error clearing library: ' + error.message);
+                }
+            }
+            
+            function toggleTrackSelection(index, event) {
+                event.stopPropagation();
+                
+                if (event.target.checked) {
+                    if (!selectedTracks.includes(index)) {
+                        selectedTracks.push(index);
+                    }
+                } else {
+                    selectedTracks = selectedTracks.filter(i => i !== index);
+                }
+                
+                updateBuildPlanButton();
+            }
+            
+            function toggleSelectAll() {
+                const libraryData = JSON.parse(sessionStorage.getItem('library') || '[]');
+                const allChecked = selectedTracks.length === libraryData.length;
+                
+                if (allChecked) {
+                    // Unselect all
+                    selectedTracks = [];
+                    document.querySelectorAll('.track-checkbox').forEach(cb => cb.checked = false);
+                    document.getElementById('select-all-btn').textContent = '☑️ Select All';
+                } else {
+                    // Select all
+                    selectedTracks = libraryData.map((_, i) => i);
+                    document.querySelectorAll('.track-checkbox').forEach(cb => cb.checked = true);
+                    document.getElementById('select-all-btn').textContent = '☐ Deselect All';
+                }
+                
+                updateBuildPlanButton();
+            }
+            
+            function updateBuildPlanButton() {
+                const btn = document.getElementById('build-plan-btn');
+                const count = selectedTracks.length;
+                
+                if (count === 0) {
+                    btn.disabled = true;
+                    btn.textContent = 'Build Set Plan (0 tracks selected)';
+                } else if (count === 1) {
+                    btn.disabled = true;
+                    btn.textContent = 'Build Set Plan (need at least 2 tracks)';
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = `Build Set Plan (${count} tracks selected)`;
+                }
+            }
+            
+            async function buildSetPreview() {
+                if (selectedTracks.length < 2) return;
+                
+                // Show loading
+                document.getElementById('progress-overlay').classList.add('active');
+                document.getElementById('progress-title').textContent = 'Building set plan...';
+                document.getElementById('progress-text').textContent = 'Analyzing transitions...';
+                document.getElementById('progress-fill').style.width = '50%';
+                
+                try {
+                    const response = await fetch('/auto_dj/build_plan', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({track_indices: selectedTracks})
+                    });
+                    
+                    const plan = await response.json();
+                    
+                    if (plan.status === 'ok') {
+                        currentPreviewPlan = plan;
+                        showPreviewModal(plan);
+                    } else {
+                        alert('Error building plan: ' + plan.message);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                } finally {
+                    document.getElementById('progress-overlay').classList.remove('active');
+                }
+            }
+            
+            function showPreviewModal(plan) {
+                const visual = plan.visual;
+                
+                // Set summary
+                document.getElementById('preview-duration').textContent = visual.total_duration_str;
+                document.getElementById('preview-tracks').textContent = 
+                    `${visual.track_list.length} tracks • ${visual.transitions.length} transitions`;
+                
+                // Track list
+                const trackList = document.getElementById('preview-track-list');
+                trackList.innerHTML = '';
+                visual.track_list.forEach((track, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'track-order-item';
+                    item.innerHTML = `
+                        <div>
+                            <strong>${i + 1}.</strong> ${track.name}
+                        </div>
+                        <div style="color: #888; font-size: 14px;">
+                            ${track.bpm?.toFixed(0)} BPM • ${track.key} • ${(track.duration / 60).toFixed(1)}m
+                        </div>
+                    `;
+                    trackList.appendChild(item);
+                });
+                
+                // Timeline
+                const timeline = document.getElementById('preview-timeline');
+                timeline.innerHTML = '';
+                visual.timeline.forEach(event => {
+                    const item = document.createElement('div');
+                    item.className = 'timeline-event';
+                    item.innerHTML = `
+                        <span class="timeline-time">${event.time_str}</span>
+                        <span class="timeline-icon">${event.icon}</span>
+                        <span>${event.description}</span>
+                    `;
+                    timeline.appendChild(item);
+                });
+                
+                // Transitions
+                const transitions = document.getElementById('preview-transitions');
+                transitions.innerHTML = '';
+                visual.transitions.forEach(trans => {
+                    const compatClass = trans.compatibility > 0.8 ? 'compatibility-good' :
+                                       trans.compatibility > 0.6 ? 'compatibility-ok' : 'compatibility-poor';
+                    
+                    const item = document.createElement('div');
+                    item.className = 'transition-item';
+                    item.innerHTML = `
+                        <div class="transition-title">${trans.from} → ${trans.to}</div>
+                        <div class="transition-details">
+                            <div>Duration: ${trans.duration}s crossfade</div>
+                            <div class="${compatClass}">Compatibility: ${(trans.compatibility * 100).toFixed(0)}%</div>
+                            <div>BPM diff: ${trans.bpm_diff.toFixed(1)} BPM</div>
+                            <div>${trans.energy_flow}</div>
+                        </div>
+                    `;
+                    transitions.appendChild(item);
+                });
+                
+                // Show modal
+                document.getElementById('preview-modal').classList.add('active');
+            }
+            
+            function closePreview() {
+                document.getElementById('preview-modal').classList.remove('active');
+            }
+            
+            async function startAutoDJFromPreview() {
+                closePreview();
+                
+                // Switch to DJ tab
+                switchTab('dj');
+                
+                // Start Auto DJ
+                try {
+                    const response = await fetch('/auto_dj/start', {method: 'POST'});
+                    const result = await response.json();
+                    
+                    if (result.status !== 'ok') {
+                        alert('Error starting Auto DJ: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
                 }
             }
             
@@ -1111,11 +1595,14 @@ async def main_interface():
                 const sugMsg = document.getElementById('sug-msg');
                 const sugTime = document.getElementById('sug-time');
                 
-                // If Auto DJ is running, show automation status instead
+                // If Auto DJ is running, show enhanced automation status
                 if (autoDJ && autoDJ.running) {
                     sugMsg.textContent = '🤖 ' + autoDJ.action_details;
                     sugTime.textContent = autoDJ.paused ? '⏸ PAUSED' : '🟢 AUTO';
                     sugCard.className = 'suggestion-card low';
+                    
+                    // Show next actions if available
+                    showEnhancedSuggestions(autoDJ);
                 } else {
                     sugMsg.textContent = suggestion.message || '🎧 Ready to DJ';
                     sugTime.textContent = suggestion.timing || '';
@@ -1131,7 +1618,55 @@ async def main_interface():
                     } else {
                         sugCard.style.boxShadow = 'none';
                     }
+                    
+                    // Clear enhanced suggestions
+                    clearEnhancedSuggestions();
                 }
+            }
+            
+            function showEnhancedSuggestions(autoDJ) {
+                // Check if we already have a details section
+                let detailsSection = document.getElementById('suggestion-details');
+                
+                if (!detailsSection) {
+                    detailsSection = document.createElement('div');
+                    detailsSection.id = 'suggestion-details';
+                    detailsSection.className = 'suggestion-details';
+                    document.getElementById('suggestion').appendChild(detailsSection);
+                }
+                
+                // Show track progress and next actions
+                const trackInfo = `Track ${autoDJ.current_track_index + 1}/${autoDJ.total_tracks}`;
+                
+                // Smart suggestions based on current action
+                let tips = [];
+                if (autoDJ.current_action.includes('loading')) {
+                    tips.push('💡 Tip: Preview the incoming track in your headphones');
+                } else if (autoDJ.current_action.includes('transitioning')) {
+                    tips.push('🎚️ You can take over the crossfader anytime');
+                    tips.push('💡 Try adding your own creative touch');
+                } else if (autoDJ.current_action.includes('monitoring')) {
+                    tips.push('🎧 Perfect time to plan your next move');
+                }
+                
+                detailsSection.innerHTML = `
+                    <div style="color: #888; font-size: 13px; margin-bottom: 5px;">
+                        ${trackInfo}
+                    </div>
+                    ${tips.length > 0 ? `
+                        <div class="suggestion-next-actions">
+                            ${tips.map(tip => `<div class="next-action">${tip}</div>`).join('')}
+                        </div>
+                    ` : ''}
+                `;
+            }
+            
+            function clearEnhancedSuggestions() {
+                const detailsSection = document.getElementById('suggestion-details');
+                if (detailsSection) {
+                    detailsSection.remove();
+                }
+            }
             }
             
             function updateAutoDJUI(autoDJ) {
