@@ -245,6 +245,7 @@ async def main_interface():
                 cursor: pointer;
                 transition: all 0.2s;
                 border: 2px solid transparent;
+                position: relative;
             }
             
             .track-card:hover {
@@ -256,6 +257,35 @@ async def main_interface():
             .track-card.selected {
                 border-color: #667eea;
                 background: rgba(102,126,234,0.2);
+            }
+            
+            .track-card:hover .delete-btn {
+                opacity: 1;
+            }
+            
+            .delete-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: #e74c3c;
+                border: none;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+                opacity: 0;
+                transition: all 0.2s;
+                z-index: 10;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .delete-btn:hover {
+                background: #c0392b;
+                transform: scale(1.1);
             }
             
             .track-title {
@@ -661,7 +691,12 @@ async def main_interface():
                 
                 <!-- Library grid -->
                 <div>
-                    <h3 style="margin: 20px 0;">Your Library (<span id="track-count">0</span> tracks)</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+                        <h3>Your Library (<span id="track-count">0</span> tracks)</h3>
+                        <button onclick="clearLibrary()" style="background: #e74c3c; padding: 8px 16px;">
+                            🗑️ Clear All
+                        </button>
+                    </div>
                     <div class="library-grid" id="library-grid">
                         <!-- Tracks appear here -->
                     </div>
@@ -906,6 +941,7 @@ async def main_interface():
                     const energy = track.energy !== undefined ? (track.energy * 10).toFixed(1) : '?';
                     
                     card.innerHTML = `
+                        <button class="delete-btn" onclick="deleteTrack(event, '${track.file_path}')">×</button>
                         <div class="track-title">${title}</div>
                         <div class="track-info">
                             <span class="badge">${bpm} BPM</span>
@@ -931,6 +967,63 @@ async def main_interface():
                 
                 // Show load buttons
                 document.getElementById('load-buttons').style.display = 'flex';
+            }
+            
+            async function deleteTrack(event, filePath) {
+                // Stop propagation so card doesn't get selected
+                event.stopPropagation();
+                
+                if (!confirm('Delete this track?')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/library/delete', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({file_path: filePath})
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'ok') {
+                        // Reload library
+                        loadLibrary();
+                        
+                        // Clear selection if deleted track was selected
+                        if (selectedTrack && selectedTrack.file_path === filePath) {
+                            selectedTrack = null;
+                            document.getElementById('load-buttons').style.display = 'none';
+                        }
+                    } else {
+                        alert('Error deleting track: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Error deleting track: ' + error.message);
+                }
+            }
+            
+            async function clearLibrary() {
+                const count = document.getElementById('track-count').textContent;
+                
+                if (!confirm(`Delete all ${count} tracks from library?`)) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/library/clear', {method: 'POST'});
+                    const result = await response.json();
+                    
+                    if (result.status === 'ok') {
+                        loadLibrary();
+                        selectedTrack = null;
+                        document.getElementById('load-buttons').style.display = 'none';
+                    } else {
+                        alert('Error clearing library: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Error clearing library: ' + error.message);
+                }
             }
             
             async function loadToDeck(deck) {
@@ -1219,6 +1312,70 @@ async def upload_track(file: UploadFile = File(...)):
 async def get_library():
     """Get track library"""
     return library
+
+
+@app.post("/library/delete")
+async def delete_track(data: dict):
+    """Delete a track from library"""
+    file_path = data.get('file_path')
+    if not file_path:
+        raise HTTPException(status_code=400, detail="file_path required")
+    
+    # Find and remove from library
+    global library
+    original_length = len(library)
+    library = [t for t in library if t.get('file_path') != file_path]
+    
+    if len(library) == original_length:
+        raise HTTPException(status_code=404, detail="Track not found")
+    
+    # Save updated library
+    save_library()
+    
+    # Optionally delete the file
+    try:
+        file_path_obj = Path(file_path)
+        if file_path_obj.exists():
+            file_path_obj.unlink()
+            print(f"🗑️ Deleted file: {file_path_obj.name}")
+    except Exception as e:
+        print(f"⚠️ Could not delete file: {e}")
+    
+    print(f"✓ Removed from library: {file_path}")
+    
+    return {
+        'status': 'ok',
+        'message': 'Track deleted',
+        'remaining_tracks': len(library)
+    }
+
+
+@app.post("/library/clear")
+async def clear_library():
+    """Clear entire library"""
+    global library
+    
+    count = len(library)
+    
+    # Delete all files
+    for track in library:
+        try:
+            file_path = Path(track.get('file_path'))
+            if file_path.exists():
+                file_path.unlink()
+        except Exception as e:
+            print(f"⚠️ Could not delete {file_path}: {e}")
+    
+    # Clear library
+    library = []
+    save_library()
+    
+    print(f"🗑️ Cleared library ({count} tracks deleted)")
+    
+    return {
+        'status': 'ok',
+        'message': f'{count} tracks deleted'
+    }
 
 
 # WebSocket for DJ mode
