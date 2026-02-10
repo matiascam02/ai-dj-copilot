@@ -256,7 +256,22 @@ class DJMixer:
     
     def set_crossfader(self, value: float):
         """Set crossfader position (-1 to +1)"""
+        old_value = self.crossfader
         self.crossfader = max(-1.0, min(1.0, value))
+        
+        # Debug: Show crossfader change
+        if abs(self.crossfader - old_value) > 0.05:  # Only log significant changes
+            print(f"🎚️ Crossfader: {self.crossfader:+.2f} (A={self._get_a_level():.2f} B={self._get_b_level():.2f})")
+    
+    def _get_a_level(self) -> float:
+        """Get current deck A level from crossfader"""
+        cf_pos = (self.crossfader + 1) / 2
+        return float(np.cos(cf_pos * np.pi / 2))
+    
+    def _get_b_level(self) -> float:
+        """Get current deck B level from crossfader"""
+        cf_pos = (self.crossfader + 1) / 2
+        return float(np.sin(cf_pos * np.pi / 2))
     
     def _audio_callback(self, outdata, frames, time_info, status):
         """
@@ -314,7 +329,8 @@ class DJMixer:
                 'time_remaining': self.deck_a.get_time_remaining(),
                 'duration': self.deck_a.duration,
                 'volume': self.deck_a.volume,
-                'peak': self.peak_a
+                'peak': self.peak_a,
+                'cf_level': self._get_a_level()  # Crossfader level
             },
             'deck_b': {
                 'loaded': self.deck_b.audio is not None,
@@ -325,9 +341,12 @@ class DJMixer:
                 'time_remaining': self.deck_b.get_time_remaining(),
                 'duration': self.deck_b.duration,
                 'volume': self.deck_b.volume,
-                'peak': self.peak_b
+                'peak': self.peak_b,
+                'cf_level': self._get_b_level()  # Crossfader level
             },
             'crossfader': self.crossfader,
+            'crossfader_a_level': self._get_a_level(),
+            'crossfader_b_level': self._get_b_level(),
             'master_volume': self.master_volume,
             'master_peak': self.peak_master,
             'is_running': self.is_running

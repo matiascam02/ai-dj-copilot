@@ -485,21 +485,72 @@ async def main_interface():
                 padding: 20px;
             }
             
+            .crossfader-labels {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            
+            .crossfader-labels .active {
+                color: #667eea;
+                text-shadow: 0 0 10px rgba(102,126,234,0.5);
+            }
+            
             .crossfader {
                 width: 100%;
                 height: 60px;
                 -webkit-appearance: none;
-                background: #1a1a1a;
+                background: linear-gradient(90deg, 
+                    rgba(102,126,234,0.3) 0%, 
+                    rgba(255,255,255,0.1) 50%, 
+                    rgba(118,75,162,0.3) 100%);
                 border-radius: 30px;
+                border: 2px solid #1a1a1a;
             }
             
             .crossfader::-webkit-slider-thumb {
                 -webkit-appearance: none;
-                width: 40px;
-                height: 50px;
+                width: 50px;
+                height: 56px;
                 background: linear-gradient(135deg, #667eea, #764ba2);
-                border-radius: 10px;
+                border-radius: 12px;
                 cursor: pointer;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+                transition: transform 0.1s;
+            }
+            
+            .crossfader::-webkit-slider-thumb:hover {
+                transform: scale(1.1);
+            }
+            
+            .cf-levels {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 15px;
+                font-size: 12px;
+                color: #888;
+            }
+            
+            .cf-level {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .cf-bar {
+                width: 80px;
+                height: 8px;
+                background: #1a1a1a;
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            
+            .cf-bar-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #667eea, #764ba2);
+                transition: width 0.1s;
             }
         </style>
     </head>
@@ -600,13 +651,29 @@ async def main_interface():
                         
                         <div class="crossfader-section">
                             <h3 style="margin-bottom: 15px;">Crossfader</h3>
+                            <div class="crossfader-labels">
+                                <span id="cf-label-a" class="active">DECK A</span>
+                                <span id="cf-label-center">CENTER</span>
+                                <span id="cf-label-b">DECK B</span>
+                            </div>
                             <input type="range" class="crossfader" id="crossfader"
                                    min="-1" max="1" step="0.01" value="-1"
                                    oninput="setCrossfader(this.value)">
-                            <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                                <span>A</span>
-                                <span>CENTER</span>
-                                <span>B</span>
+                            <div class="cf-levels">
+                                <div class="cf-level">
+                                    <span>A:</span>
+                                    <div class="cf-bar">
+                                        <div class="cf-bar-fill" id="cf-level-a" style="width: 100%"></div>
+                                    </div>
+                                    <span id="cf-percent-a">100%</span>
+                                </div>
+                                <div class="cf-level">
+                                    <span>B:</span>
+                                    <div class="cf-bar">
+                                        <div class="cf-bar-fill" id="cf-level-b" style="width: 0%"></div>
+                                    </div>
+                                    <span id="cf-percent-b">0%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -838,6 +905,11 @@ async def main_interface():
                 updateDeck('a', mixer.deck_a);
                 updateDeck('b', mixer.deck_b);
                 
+                // Update crossfader display from backend
+                if (mixer.crossfader !== undefined) {
+                    updateCrossfaderUI(mixer.crossfader);
+                }
+                
                 // Update suggestion (make it prominent!)
                 const sugCard = document.getElementById('suggestion');
                 const sugMsg = document.getElementById('sug-msg');
@@ -887,15 +959,56 @@ async def main_interface():
             }
             
             function setCrossfader(value) {
+                const val = parseFloat(value);
+                
+                // Send to backend
                 fetch('/control/crossfader', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({value: parseFloat(value)})
+                    body: JSON.stringify({value: val})
                 });
+                
+                // Immediate visual feedback (don't wait for websocket)
+                updateCrossfaderUI(val);
+            }
+            
+            function updateCrossfaderUI(cfValue) {
+                // Calculate levels (same as backend)
+                const cf_pos = (cfValue + 1) / 2;  // 0 to 1
+                const a_level = Math.cos(cf_pos * Math.PI / 2);
+                const b_level = Math.sin(cf_pos * Math.PI / 2);
+                
+                // Update bars
+                document.getElementById('cf-level-a').style.width = `${a_level * 100}%`;
+                document.getElementById('cf-level-b').style.width = `${b_level * 100}%`;
+                
+                // Update percentages
+                document.getElementById('cf-percent-a').textContent = `${Math.round(a_level * 100)}%`;
+                document.getElementById('cf-percent-b').textContent = `${Math.round(b_level * 100)}%`;
+                
+                // Update labels
+                const labelA = document.getElementById('cf-label-a');
+                const labelCenter = document.getElementById('cf-label-center');
+                const labelB = document.getElementById('cf-label-b');
+                
+                labelA.classList.remove('active');
+                labelCenter.classList.remove('active');
+                labelB.classList.remove('active');
+                
+                if (cfValue < -0.3) {
+                    labelA.classList.add('active');
+                } else if (cfValue > 0.3) {
+                    labelB.classList.add('active');
+                } else {
+                    labelCenter.classList.add('active');
+                }
             }
             
             // Load library on start
             loadLibrary();
+            
+            // Initialize crossfader display
+            updateCrossfaderUI(-1);  // Start at full A
         </script>
     </body>
     </html>
