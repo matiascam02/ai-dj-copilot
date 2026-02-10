@@ -1171,49 +1171,6 @@ async def main_interface():
             let currentPreviewPlan = null;
             let ws = null;
             
-            // Drag & drop initialization
-            function initUpload() {
-                const uploadArea = document.getElementById('upload-area');
-                const fileInput = document.getElementById('file-input');
-                const analyzeBtn = document.getElementById('analyze-btn');
-                
-                if (!uploadArea || !fileInput || !analyzeBtn) {
-                    console.error('Upload elements not found');
-                    return;
-                }
-                
-                console.log('✓ Upload initialized');
-                
-                // Click upload area to open file picker
-                uploadArea.addEventListener('click', () => {
-                    fileInput.click();
-                });
-                
-                // Analyze button
-                analyzeBtn.addEventListener('click', () => {
-                    analyzeSelected();
-                });
-                
-                uploadArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.add('dragging');
-                });
-                
-                uploadArea.addEventListener('dragleave', () => {
-                    uploadArea.classList.remove('dragging');
-                });
-                
-                uploadArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.remove('dragging');
-                    handleFiles(e.dataTransfer.files);
-                });
-                
-                fileInput.addEventListener('change', (e) => {
-                    handleFiles(e.target.files);
-                });
-            }
-            
             function handleFiles(files) {
                 selectedFiles = Array.from(files);
                 const count = selectedFiles.length;
@@ -1982,8 +1939,43 @@ async def main_interface():
             // Initialize crossfader display
             updateCrossfaderUI(-1);  // Start at full A
             
-            // Initialize upload (after DOM is ready)
-            initUpload();
+            // Initialize upload elements
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            
+            if (uploadArea && fileInput && analyzeBtn) {
+                console.log('✓ Upload initialized');
+                
+                uploadArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                analyzeBtn.addEventListener('click', () => {
+                    analyzeSelected();
+                });
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragging');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragging');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragging');
+                    handleFiles(e.dataTransfer.files);
+                });
+                
+                fileInput.addEventListener('change', (e) => {
+                    handleFiles(e.target.files);
+                });
+            } else {
+                console.error('Upload elements not found');
+            }
         </script>
     </body>
     </html>
