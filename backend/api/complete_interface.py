@@ -72,9 +72,16 @@ def save_library():
 # Load library on startup
 load_library()
 
-# Start mixer
-mixer.start()
-print("🎛️ Mixer started")
+# Start mixer with error handling
+try:
+    mixer.start()
+    print("🎛️ Mixer started successfully")
+    print(f"   Sample rate: {mixer.sample_rate} Hz")
+    print(f"   Block size: {mixer.blocksize} samples")
+except Exception as e:
+    print(f"❌ Error starting mixer: {e}")
+    print("   Audio playback will not work!")
+    print("   Install dependencies: pip3 install --break-system-packages sounddevice soundfile scipy")
 
 
 @app.on_event("shutdown")
@@ -1119,6 +1126,22 @@ async def load_track(deck: str, data: dict):
         return {'status': 'ok'}
     else:
         raise HTTPException(status_code=500, detail="Failed to load track")
+
+
+@app.get("/audio/status")
+async def audio_status():
+    """Check if audio system is working"""
+    return {
+        'mixer_running': mixer.is_running,
+        'sample_rate': mixer.sample_rate,
+        'deck_a_loaded': mixer.deck_a.audio is not None,
+        'deck_b_loaded': mixer.deck_b.audio is not None,
+        'deck_a_playing': mixer.deck_a.is_playing,
+        'deck_b_playing': mixer.deck_b.is_playing,
+        'crossfader': mixer.crossfader,
+        'crossfader_a_level': mixer._get_a_level() if mixer.is_running else 0,
+        'crossfader_b_level': mixer._get_b_level() if mixer.is_running else 0
+    }
 
 
 if __name__ == "__main__":
