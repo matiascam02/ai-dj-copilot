@@ -1834,10 +1834,10 @@ async def main_interface():
             }
             
             async function jumpDeck(deck, seconds) {
-                console.log(`⏩ Jumping ${deck.toUpperCase()} ${seconds > 0 ? '+' : ''}${seconds}s`);
+                console.log(`⏩ Jumping Deck ${deck.toUpperCase()} ${seconds > 0 ? '+' : ''}${seconds}s`);
                 
                 try {
-                    await fetch('/control/jump', {
+                    const response = await fetch('/control/jump', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -1845,8 +1845,18 @@ async def main_interface():
                             seconds: seconds
                         })
                     });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'ok') {
+                        console.log(`✓ Jumped from ${result.old_position.toFixed(1)}s → ${result.new_position.toFixed(1)}s`);
+                    } else {
+                        console.warn(`⚠️ ${result.message || 'Jump failed'}`);
+                        alert(result.message || 'Jump failed');
+                    }
                 } catch (error) {
-                    console.error('Error jumping:', error);
+                    console.error('❌ Error jumping:', error);
+                    alert('Error: ' + error.message);
                 }
             }
             
@@ -1854,11 +1864,21 @@ async def main_interface():
                 console.log('⏩ Jumping to next transition...');
                 
                 try {
-                    await fetch('/control/jump_to_transition', {
+                    const response = await fetch('/control/jump_to_transition', {
                         method: 'POST'
                     });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'ok') {
+                        console.log(`✓ Jumped to ${result.position.toFixed(1)}s (30s before transition at ${result.transition_start.toFixed(1)}s)`);
+                    } else {
+                        console.warn(`⚠️ ${result.message || 'Jump failed'}`);
+                        alert(result.message || 'Auto DJ not running or no transition planned');
+                    }
                 } catch (error) {
-                    console.error('Error jumping to transition:', error);
+                    console.error('❌ Error jumping to transition:', error);
+                    alert('Error: ' + error.message);
                 }
             }
             
@@ -2104,12 +2124,22 @@ async def jump_deck(data: dict):
     
     target_deck = mixer.deck_a if deck == 'a' else mixer.deck_b
     
+    # Check if track is loaded
+    if target_deck.audio is None:
+        return {
+            'status': 'error',
+            'message': f'No track loaded in Deck {deck.upper()}'
+        }
+    
     # Get current position
     current_pos = target_deck.get_position()
     new_pos = current_pos + seconds
     
-    # Clamp to valid range
-    new_pos = max(0, min(new_pos, target_deck.duration))
+    # Clamp to valid range (0 to duration)
+    if target_deck.duration > 0:
+        new_pos = max(0, min(new_pos, target_deck.duration))
+    else:
+        new_pos = max(0, new_pos)
     
     # Jump to new position
     target_deck.cue(new_pos)
