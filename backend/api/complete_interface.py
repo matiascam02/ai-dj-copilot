@@ -202,7 +202,6 @@ async def main_interface():
                 margin: 20px 0;
                 cursor: pointer;
                 transition: all 0.3s;
-                text-align: center;
             }
             
             .upload-area:hover {
@@ -1154,10 +1153,10 @@ async def main_interface():
                 
                 <!-- Actions -->
                 <div class="preview-actions">
-                    <button class="secondary" id="close-preview-btn">
+                    <button onclick="closePreview()" class="secondary">
                         ← Back to Selection
                     </button>
-                    <button class="start-auto-btn" id="start-autodj-btn">
+                    <button onclick="startAutoDJFromPreview()" class="start-auto-btn">
                         🚀 Start Auto DJ
                     </button>
                 </div>
@@ -1170,6 +1169,40 @@ async def main_interface():
             let selectedTracks = [];  // For multi-select
             let currentPreviewPlan = null;
             let ws = null;
+            
+            // Drag & drop
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            
+            // Click upload area to open file picker
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Analyze button
+            analyzeBtn.addEventListener('click', () => {
+                analyzeSelected();
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragging');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragging');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragging');
+                handleFiles(e.dataTransfer.files);
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
             
             function handleFiles(files) {
                 selectedFiles = Array.from(files);
@@ -1921,61 +1954,11 @@ async def main_interface():
                 });
             });
             
-            // Preview modal button listeners
-            const closePreviewBtn = document.getElementById('close-preview-btn');
-            const startAutoDJBtn = document.getElementById('start-autodj-btn');
-            
-            if (closePreviewBtn) {
-                closePreviewBtn.addEventListener('click', closePreview);
-            }
-            
-            if (startAutoDJBtn) {
-                startAutoDJBtn.addEventListener('click', startAutoDJFromPreview);
-            }
-            
             // Load library on start
             loadLibrary();
             
             // Initialize crossfader display
             updateCrossfaderUI(-1);  // Start at full A
-            
-            // Initialize upload elements
-            const uploadArea = document.getElementById('upload-area');
-            const fileInput = document.getElementById('file-input');
-            const analyzeBtn = document.getElementById('analyze-btn');
-            
-            if (uploadArea && fileInput && analyzeBtn) {
-                console.log('✓ Upload initialized');
-                
-                uploadArea.addEventListener('click', () => {
-                    fileInput.click();
-                });
-                
-                analyzeBtn.addEventListener('click', () => {
-                    analyzeSelected();
-                });
-                
-                uploadArea.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.add('dragging');
-                });
-                
-                uploadArea.addEventListener('dragleave', () => {
-                    uploadArea.classList.remove('dragging');
-                });
-                
-                uploadArea.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    uploadArea.classList.remove('dragging');
-                    handleFiles(e.dataTransfer.files);
-                });
-                
-                fileInput.addEventListener('change', (e) => {
-                    handleFiles(e.target.files);
-                });
-            } else {
-                console.error('Upload elements not found');
-            }
         </script>
     </body>
     </html>
