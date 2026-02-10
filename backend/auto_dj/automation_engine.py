@@ -30,6 +30,7 @@ class AutoDJEngine:
         self.current_action = "idle"
         self.action_details = ""
         self.next_action_time = None
+        self.current_plan = None  # Current transition plan
         
         # Human override detection
         self.last_mixer_state = None
@@ -158,6 +159,7 @@ class AutoDJEngine:
             
             # Get transition plan
             plan = self.planner.plan_transition(current_track, next_track)
+            self.current_plan = plan  # Store for jump-to-transition feature
             
             if not plan:
                 # No plan available, skip to next

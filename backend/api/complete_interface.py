@@ -989,6 +989,13 @@ async def main_interface():
                             <button onclick="control('pause_a')">⏸</button>
                             <button onclick="control('stop_a')">⏹</button>
                         </div>
+                        
+                        <div class="controls">
+                            <button class="secondary" onclick="jumpDeck('a', -30)">⏪ 30s</button>
+                            <button class="secondary" onclick="jumpDeck('a', -10)">⏪ 10s</button>
+                            <button class="secondary" onclick="jumpDeck('a', 10)">10s ⏩</button>
+                            <button class="secondary" onclick="jumpDeck('a', 30)">30s ⏩</button>
+                        </div>
                     </div>
                     
                     <!-- Center panel -->
@@ -1002,6 +1009,7 @@ async def main_interface():
                             <div class="auto-dj-controls" id="auto-dj-controls" style="display: none;">
                                 <button onclick="pauseAutoDJ()">⏸ Pause</button>
                                 <button onclick="resumeAutoDJ()">▶️ Resume</button>
+                                <button onclick="jumpToTransition()" style="background: #f39c12;">⏩ Jump to Transition</button>
                                 <button class="auto-dj-button stop" onclick="stopAutoDJ()">⏹ Stop</button>
                             </div>
                             <div class="auto-dj-status" id="auto-dj-status" style="display: none;">
@@ -1077,6 +1085,13 @@ async def main_interface():
                             <button onclick="control('play_b')">▶️</button>
                             <button onclick="control('pause_b')">⏸</button>
                             <button onclick="control('stop_b')">⏹</button>
+                        </div>
+                        
+                        <div class="controls">
+                            <button class="secondary" onclick="jumpDeck('b', -30)">⏪ 30s</button>
+                            <button class="secondary" onclick="jumpDeck('b', -10)">⏪ 10s</button>
+                            <button class="secondary" onclick="jumpDeck('b', 10)">10s ⏩</button>
+                            <button class="secondary" onclick="jumpDeck('b', 30)">30s ⏩</button>
                         </div>
                     </div>
                 </div>
@@ -1857,6 +1872,35 @@ async def main_interface():
                 fetch(`/control/${action}`, {method: 'POST'});
             }
             
+            async function jumpDeck(deck, seconds) {
+                console.log(`⏩ Jumping ${deck.toUpperCase()} ${seconds > 0 ? '+' : ''}${seconds}s`);
+                
+                try {
+                    await fetch('/control/jump', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            deck: deck,
+                            seconds: seconds
+                        })
+                    });
+                } catch (error) {
+                    console.error('Error jumping:', error);
+                }
+            }
+            
+            async function jumpToTransition() {
+                console.log('⏩ Jumping to next transition...');
+                
+                try {
+                    await fetch('/control/jump_to_transition', {
+                        method: 'POST'
+                    });
+                } catch (error) {
+                    console.error('Error jumping to transition:', error);
+                }
+            }
+            
             function setCrossfader(value) {
                 const val = parseFloat(value);
                 
@@ -2121,6 +2165,65 @@ async def set_crossfader(data: dict):
     """Set crossfader position"""
     mixer.set_crossfader(data['value'])
     return {'status': 'ok'}
+
+
+@app.post("/control/jump")
+async def jump_deck(data: dict):
+    """Jump forward/backward in a deck"""
+    deck = data.get('deck', 'a')
+    seconds = data.get('seconds', 0)
+    
+    target_deck = mixer.deck_a if deck == 'a' else mixer.deck_b
+    
+    # Get current position
+    current_pos = target_deck.get_position()
+    new_pos = current_pos + seconds
+    
+    # Clamp to valid range
+    new_pos = max(0, min(new_pos, target_deck.duration))
+    
+    # Jump to new position
+    target_deck.cue(new_pos)
+    
+    print(f"⏩ Deck {deck.upper()} jumped {seconds:+.0f}s: {current_pos:.1f}s → {new_pos:.1f}s")
+    
+    return {
+        'status': 'ok',
+        'deck': deck,
+        'old_position': current_pos,
+        'new_position': new_pos
+    }
+
+
+@app.post("/control/jump_to_transition")
+async def jump_to_transition():
+    """Jump to 30 seconds before next transition"""
+    
+    # Get current Auto DJ state
+    if not auto_dj.running or not auto_dj.current_plan:
+        return {'status': 'error', 'message': 'Auto DJ not running'}
+    
+    # Get transition start time
+    plan = auto_dj.current_plan
+    if 'track_a' not in plan or 'transition_start' not in plan['track_a']:
+        return {'status': 'error', 'message': 'No transition plan available'}
+    
+    transition_start = plan['track_a']['transition_start']
+    
+    # Jump to 30s before transition
+    jump_to = transition_start - 30
+    jump_to = max(0, jump_to)
+    
+    # Jump Deck A
+    mixer.deck_a.cue(jump_to)
+    
+    print(f"⏩ Jumped to transition preview: {jump_to:.1f}s (30s before mix)")
+    
+    return {
+        'status': 'ok',
+        'position': jump_to,
+        'transition_start': transition_start
+    }
 
 
 @app.post("/load/{deck}")
