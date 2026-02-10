@@ -1713,7 +1713,6 @@ async def main_interface():
                     detailsSection.remove();
                 }
             }
-            }
             
             function updateAutoDJUI(autoDJ) {
                 if (!autoDJ) return;
