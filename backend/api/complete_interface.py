@@ -329,7 +329,7 @@ async def main_interface():
             /* DJ tab - reuse from dj_interface.py */
             .dj-grid {
                 display: grid;
-                grid-template-columns: 1fr 400px 1fr;
+                grid-template-columns: 1fr 450px 1fr;
                 gap: 20px;
                 height: calc(100vh - 180px);
             }
@@ -407,8 +407,13 @@ async def main_interface():
             .suggestion-card {
                 background: #2a2a2a;
                 border-radius: 12px;
-                padding: 20px;
+                padding: 30px;
                 text-align: center;
+                min-height: 150px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                position: relative;
             }
             
             .suggestion-card.high {
@@ -416,9 +421,62 @@ async def main_interface():
                 animation: pulse 2s infinite;
             }
             
+            .suggestion-card.medium {
+                background: linear-gradient(135deg, #f39c12, #e67e22);
+            }
+            
+            .suggestion-card.low {
+                background: #2a2a2a;
+            }
+            
             @keyframes pulse {
                 0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.02); }
+                50% { transform: scale(1.05); }
+            }
+            
+            .suggestion-message {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 15px;
+                line-height: 1.4;
+            }
+            
+            .suggestion-timing {
+                font-size: 18px;
+                color: #ddd;
+                font-weight: 600;
+            }
+            
+            .thinking-indicator {
+                display: none;
+                margin-top: 10px;
+            }
+            
+            .thinking-indicator.active {
+                display: block;
+            }
+            
+            .thinking-dots {
+                display: inline-block;
+            }
+            
+            .thinking-dots span {
+                animation: blink 1.4s infinite;
+                display: inline-block;
+                margin: 0 2px;
+            }
+            
+            .thinking-dots span:nth-child(2) {
+                animation-delay: 0.2s;
+            }
+            
+            .thinking-dots span:nth-child(3) {
+                animation-delay: 0.4s;
+            }
+            
+            @keyframes blink {
+                0%, 60%, 100% { opacity: 0.3; }
+                30% { opacity: 1; }
             }
             
             .crossfader-section {
@@ -529,9 +587,15 @@ async def main_interface():
                     
                     <!-- Center panel -->
                     <div class="center-panel">
-                        <div class="suggestion-card" id="suggestion">
-                            <div id="sug-msg">Load tracks to start</div>
-                            <div id="sug-time" style="margin-top: 10px; color: #ddd;"></div>
+                        <div class="suggestion-card low" id="suggestion">
+                            <div class="suggestion-message" id="sug-msg">Load tracks to start</div>
+                            <div class="suggestion-timing" id="sug-time"></div>
+                            <div class="thinking-indicator" id="thinking">
+                                <div class="thinking-dots">
+                                    <span>●</span><span>●</span><span>●</span>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 14px;">AI thinking...</div>
+                            </div>
                         </div>
                         
                         <div class="crossfader-section">
@@ -628,13 +692,17 @@ async def main_interface():
                 const overlay = document.getElementById('progress-overlay');
                 overlay.classList.add('active');
                 
+                // Show thinking indicator
+                const thinking = document.getElementById('thinking');
+                if (thinking) thinking.classList.add('active');
+                
                 for (let i = 0; i < selectedFiles.length; i++) {
                     const file = selectedFiles[i];
                     
                     document.getElementById('progress-title').textContent = 
-                        `Analyzing: ${file.name}`;
+                        `🎵 Analyzing: ${file.name}`;
                     document.getElementById('progress-text').textContent = 
-                        `${i + 1} / ${selectedFiles.length} tracks`;
+                        `${i + 1} / ${selectedFiles.length} tracks • Detecting BPM, key, energy...`;
                     document.getElementById('progress-fill').style.width = 
                         `${((i + 1) / selectedFiles.length) * 100}%`;
                     
@@ -648,10 +716,13 @@ async def main_interface():
                         });
                     } catch (error) {
                         console.error('Error uploading:', error);
+                        alert(`Error analyzing ${file.name}: ${error.message}`);
                     }
                 }
                 
                 overlay.classList.remove('active');
+                if (thinking) thinking.classList.remove('active');
+                
                 selectedFiles = [];
                 fileInput.value = '';
                 document.getElementById('analyze-btn').disabled = true;
@@ -673,13 +744,20 @@ async def main_interface():
                     card.className = 'track-card';
                     card.onclick = () => selectTrack(track, card);
                     
+                    // Safe access to track properties
+                    const title = track.title || track.filename || 'Unknown Track';
+                    const bpm = track.bpm ? track.bpm.toFixed(0) : '?';
+                    const key = track.key || '?';
+                    const duration = track.duration ? (track.duration / 60).toFixed(1) : '?';
+                    const energy = track.energy !== undefined ? (track.energy * 10).toFixed(1) : '?';
+                    
                     card.innerHTML = `
-                        <div class="track-title">${track.title || track.filename}</div>
+                        <div class="track-title">${title}</div>
                         <div class="track-info">
-                            <span class="badge">${track.bpm?.toFixed(0) || '?'} BPM</span>
-                            <span class="badge">${track.key || '?'}</span>
-                            <span class="badge">${(track.duration / 60).toFixed(1)}m</span>
-                            <span class="badge">Energy: ${(track.energy * 10).toFixed(1)}</span>
+                            <span class="badge">${bpm} BPM</span>
+                            <span class="badge">${key}</span>
+                            <span class="badge">${duration}m</span>
+                            <span class="badge">Energy: ${energy}</span>
                         </div>
                     `;
                     
@@ -760,24 +838,42 @@ async def main_interface():
                 updateDeck('a', mixer.deck_a);
                 updateDeck('b', mixer.deck_b);
                 
-                // Update suggestion
-                document.getElementById('sug-msg').textContent = suggestion.message;
-                document.getElementById('sug-time').textContent = suggestion.timing || '';
-                
+                // Update suggestion (make it prominent!)
                 const sugCard = document.getElementById('suggestion');
-                sugCard.className = `suggestion-card ${suggestion.urgency}`;
+                const sugMsg = document.getElementById('sug-msg');
+                const sugTime = document.getElementById('sug-time');
+                
+                sugMsg.textContent = suggestion.message || '🎧 Ready to DJ';
+                sugTime.textContent = suggestion.timing || '';
+                
+                // Update card style based on urgency
+                sugCard.className = `suggestion-card ${suggestion.urgency || 'low'}`;
+                
+                // Flash animation on urgent messages
+                if (suggestion.urgency === 'high') {
+                    sugCard.style.boxShadow = '0 0 30px rgba(231, 76, 60, 0.8)';
+                } else if (suggestion.urgency === 'medium') {
+                    sugCard.style.boxShadow = '0 0 20px rgba(243, 156, 18, 0.6)';
+                } else {
+                    sugCard.style.boxShadow = 'none';
+                }
             }
             
             function updateDeck(id, deck) {
-                document.getElementById(`track-${id}`).textContent = 
-                    deck.track || 'No track loaded';
+                // Safe track name
+                const trackName = deck.track || 'No track loaded';
+                document.getElementById(`track-${id}`).textContent = trackName;
                 
-                const progress = deck.progress * 100;
+                // Progress (safe defaults)
+                const progress = (deck.progress || 0) * 100;
                 document.getElementById(`wave-${id}`).style.width = `${progress}%`;
                 document.getElementById(`pos-${id}`).style.left = `${progress}%`;
                 
-                document.getElementById(`time-${id}`).textContent = formatTime(deck.position);
-                document.getElementById(`remain-${id}`).textContent = '-' + formatTime(deck.time_remaining);
+                // Time displays (safe defaults)
+                const position = deck.position || 0;
+                const remaining = deck.time_remaining || 0;
+                document.getElementById(`time-${id}`).textContent = formatTime(position);
+                document.getElementById(`remain-${id}`).textContent = '-' + formatTime(remaining);
             }
             
             function formatTime(seconds) {
