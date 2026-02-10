@@ -1481,7 +1481,13 @@ async def main_interface():
             }
             
             async function buildSetPreview() {
-                if (selectedTracks.length < 2) return;
+                if (selectedTracks.length < 2) {
+                    console.warn('Need at least 2 tracks selected');
+                    return;
+                }
+                
+                console.log('\n🎯 Building set preview...');
+                console.log('Selected track indices:', selectedTracks);
                 
                 // Show loading
                 document.getElementById('progress-overlay').classList.add('active');
@@ -1490,21 +1496,34 @@ async def main_interface():
                 document.getElementById('progress-fill').style.width = '50%';
                 
                 try {
+                    console.log('📤 Sending request to /auto_dj/build_plan');
+                    
                     const response = await fetch('/auto_dj/build_plan', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({track_indices: selectedTracks})
                     });
                     
+                    console.log('✓ Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('❌ Server error:', errorText);
+                        throw new Error(`Server error (${response.status}): ${errorText}`);
+                    }
+                    
                     const plan = await response.json();
+                    console.log('✓ Plan received:', plan);
                     
                     if (plan.status === 'ok') {
                         currentPreviewPlan = plan;
                         showPreviewModal(plan);
                     } else {
-                        alert('Error building plan: ' + plan.message);
+                        console.error('❌ Plan failed:', plan);
+                        alert('Error building plan: ' + (plan.message || plan.detail || 'Unknown error'));
                     }
                 } catch (error) {
+                    console.error('❌ Error building plan:', error);
                     alert('Error: ' + error.message);
                 } finally {
                     document.getElementById('progress-overlay').classList.remove('active');
@@ -2140,28 +2159,56 @@ async def audio_status():
 @app.post("/auto_dj/build_plan")
 async def build_auto_dj_plan(data: dict):
     """Build set plan from selected tracks"""
-    track_indices = data.get('track_indices', [])
-    
-    if not track_indices:
-        # Use all tracks if none selected
-        selected_tracks = library
-    else:
-        # Get selected tracks
-        selected_tracks = [library[i] for i in track_indices if i < len(library)]
-    
-    if not selected_tracks:
-        raise HTTPException(status_code=400, detail="No tracks selected")
-    
-    # Build automation plan
-    auto_plan = auto_dj.build_set_plan(selected_tracks)
-    
-    # Build visual roadmap
-    visual_plan = set_planner.build_visual_plan(selected_tracks)
-    
-    return {
-        **auto_plan,
-        'visual': visual_plan
-    }
+    try:
+        print(f"\n{'='*60}")
+        print(f"🎯 BUILD SET PLAN REQUEST")
+        print(f"{'='*60}")
+        print(f"Request data: {data}")
+        
+        track_indices = data.get('track_indices', [])
+        print(f"Track indices: {track_indices}")
+        print(f"Library size: {len(library)}")
+        
+        if not track_indices:
+            # Use all tracks if none selected
+            selected_tracks = library
+            print(f"Using all {len(library)} tracks")
+        else:
+            # Get selected tracks
+            selected_tracks = [library[i] for i in track_indices if i < len(library)]
+            print(f"Selected {len(selected_tracks)} tracks from indices")
+        
+        if not selected_tracks:
+            raise HTTPException(status_code=400, detail="No tracks selected")
+        
+        print(f"\nSelected tracks:")
+        for i, track in enumerate(selected_tracks):
+            print(f"  {i+1}. {track.get('title', 'Unknown')} - {track.get('bpm', '?')} BPM, {track.get('key', '?')}")
+        
+        # Build automation plan
+        print(f"\n🤖 Building automation plan...")
+        auto_plan = auto_dj.build_set_plan(selected_tracks)
+        print(f"✓ Automation plan complete")
+        
+        # Build visual roadmap
+        print(f"🎨 Building visual roadmap...")
+        visual_plan = set_planner.build_visual_plan(selected_tracks)
+        print(f"✓ Visual roadmap complete")
+        
+        print(f"{'='*60}\n")
+        
+        return {
+            **auto_plan,
+            'visual': visual_plan
+        }
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n❌ ERROR IN BUILD_SET_PLAN:")
+        print(error_details)
+        print(f"{'='*60}\n")
+        raise HTTPException(status_code=500, detail=f"Failed to build plan: {str(e)}")
 
 
 @app.post("/auto_dj/start")
