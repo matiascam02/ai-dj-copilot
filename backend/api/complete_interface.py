@@ -1153,10 +1153,10 @@ async def main_interface():
                 
                 <!-- Actions -->
                 <div class="preview-actions">
-                    <button onclick="closePreview()" class="secondary">
+                    <button class="secondary" id="close-preview-btn">
                         ← Back to Selection
                     </button>
-                    <button onclick="startAutoDJFromPreview()" class="start-auto-btn">
+                    <button class="start-auto-btn" id="start-autodj-btn">
                         🚀 Start Auto DJ
                     </button>
                 </div>
@@ -1170,39 +1170,51 @@ async def main_interface():
             let currentPreviewPlan = null;
             let ws = null;
             
-            // Drag & drop
-            const uploadArea = document.getElementById('upload-area');
-            const fileInput = document.getElementById('file-input');
-            const analyzeBtn = document.getElementById('analyze-btn');
+            // Drag & drop initialization
+            function initUpload() {
+                const uploadArea = document.getElementById('upload-area');
+                const fileInput = document.getElementById('file-input');
+                const analyzeBtn = document.getElementById('analyze-btn');
+                
+                if (!uploadArea || !fileInput || !analyzeBtn) {
+                    console.error('Upload elements not found');
+                    return;
+                }
+                
+                console.log('✓ Upload initialized');
+                
+                // Click upload area to open file picker
+                uploadArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                // Analyze button
+                analyzeBtn.addEventListener('click', () => {
+                    analyzeSelected();
+                });
+                
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragging');
+                });
+                
+                uploadArea.addEventListener('dragleave', () => {
+                    uploadArea.classList.remove('dragging');
+                });
+                
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragging');
+                    handleFiles(e.dataTransfer.files);
+                });
+                
+                fileInput.addEventListener('change', (e) => {
+                    handleFiles(e.target.files);
+                });
+            }
             
-            // Click upload area to open file picker
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
-            });
-            
-            // Analyze button
-            analyzeBtn.addEventListener('click', () => {
-                analyzeSelected();
-            });
-            
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragging');
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragging');
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragging');
-                handleFiles(e.dataTransfer.files);
-            });
-            
-            fileInput.addEventListener('change', (e) => {
-                handleFiles(e.target.files);
-            });
+            // Initialize upload
+            initUpload();
             
             function handleFiles(files) {
                 selectedFiles = Array.from(files);
@@ -1953,6 +1965,18 @@ async def main_interface():
                     switchTab(tab.dataset.tab);
                 });
             });
+            
+            // Preview modal button listeners
+            const closePreviewBtn = document.getElementById('close-preview-btn');
+            const startAutoDJBtn = document.getElementById('start-autodj-btn');
+            
+            if (closePreviewBtn) {
+                closePreviewBtn.addEventListener('click', closePreview);
+            }
+            
+            if (startAutoDJBtn) {
+                startAutoDJBtn.addEventListener('click', startAutoDJFromPreview);
+            }
             
             // Load library on start
             loadLibrary();
