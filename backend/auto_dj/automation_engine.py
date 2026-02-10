@@ -184,7 +184,7 @@ class AutoDJEngine:
             
             # Phase 2: Load next track
             if time_until_transition <= 60 and time_until_transition > 30:
-                if not self.mixer.deck_b.audio:
+                if self.mixer.deck_b.audio is None:
                     self._execute_action(
                         "loading_next_track",
                         f"Loading track {self.current_track_index + 2} to Deck B..."
