@@ -87,9 +87,9 @@ class SetPlanner:
                 transitions_summary.append({
                     'from': self._get_track_name(tracks[i]),
                     'to': self._get_track_name(tracks[i + 1]),
-                    'duration': plan['transition']['duration'],
-                    'method': plan['transition']['method'],
-                    'compatibility': plan['compatibility'],
+                    'duration': plan['transition'].get('duration', 30),
+                    'method': plan['transition'].get('method', 'standard'),
+                    'compatibility': plan.get('compatibility', 0.5),
                     'bpm_diff': abs(tracks[i].get('bpm', 0) - tracks[i + 1].get('bpm', 0)),
                     'energy_flow': self._get_energy_flow(
                         tracks[i].get('energy', 0.5),
